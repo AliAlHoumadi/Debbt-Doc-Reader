@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extraction Results - Invoice OCR Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .toggle-btn.active {
+            @apply bg-blue-600 text-white;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-12">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">Extraction Complete ✓</h1>
+            <p class="text-lg text-gray-600">All invoice details have been successfully extracted and parsed</p>
+        </div>
+
+        <!-- Quick Summary Section -->
+        <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border-l-4 border-green-600 p-6 mb-8 max-w-5xl mx-auto">
+            <div class="flex items-start gap-4">
+                <div class="text-3xl">📄</div>
+                <div>
+                    <h3 class="font-semibold text-gray-900 mb-2">Invoice Summary</h3>
+                    <p class="text-gray-600 text-sm">Invoice <span id="summaryInvoiceNumber" class="font-mono font-bold">—</span> from <span id="summarySupplier" class="font-bold">—</span> for <span id="summaryCurrency" class="font-bold">—</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="max-w-5xl mx-auto">
+            <!-- Summary Cards Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Supplier Card -->
+                <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-500">
+                    <h3 class="text-gray-600 text-sm font-semibold uppercase mb-2 flex items-center gap-2">
+                        <span class="text-lg">🏢</span> Supplier / Issuer
+                    </h3>
+                    <p id="supplier" class="text-2xl font-bold text-gray-900 mb-2">—</p>
+                    <p class="text-xs text-gray-500">The company issuing this invoice</p>
+                </div>
+
+                <!-- Customer Card -->
+                <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-purple-500">
+                    <h3 class="text-gray-600 text-sm font-semibold uppercase mb-2 flex items-center gap-2">
+                        <span class="text-lg">👤</span> Customer / Debtor
+                    </h3>
+                    <p id="customer" class="text-2xl font-bold text-gray-900 mb-2">—</p>
+                    <p class="text-xs text-gray-500">The company or person being billed</p>
+                </div>
+
+                <!-- Invoice Number Card -->
+                <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-indigo-500">
+                    <h3 class="text-gray-600 text-sm font-semibold uppercase mb-2 flex items-center gap-2">
+                        <span class="text-lg">🔢</span> Invoice Number
+                    </h3>
+                    <p id="invoiceNumber" class="text-2xl font-bold text-gray-900 font-mono mb-2">—</p>
+                    <p class="text-xs text-gray-500">Unique invoice identifier</p>
+                </div>
+
+                <!-- Invoice Date Card -->
+                <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-orange-500">
+                    <h3 class="text-gray-600 text-sm font-semibold uppercase mb-2 flex items-center gap-2">
+                        <span class="text-lg">📅</span> Invoice Date
+                    </h3>
+                    <p id="invoiceDate" class="text-2xl font-bold text-gray-900 mb-2">—</p>
+                    <p class="text-xs text-gray-500">Date the invoice was issued</p>
+                </div>
+
+                <!-- Payment Term Card -->
+                <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-green-500">
+                    <h3 class="text-gray-600 text-sm font-semibold uppercase mb-2 flex items-center gap-2">
+                        <span class="text-lg">⏰</span> Payment Term
+                    </h3>
+                    <p id="paymentTerm" class="text-2xl font-bold text-gray-900 mb-2">—</p>
+                    <p class="text-xs text-gray-500">When payment is due</p>
+                </div>
+
+                <!-- IBAN Card -->
+                <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-red-500">
+                    <h3 class="text-gray-600 text-sm font-semibold uppercase mb-2 flex items-center gap-2">
+                        <span class="text-lg">🏦</span> IBAN / Account
+                    </h3>
+                    <p id="iban" class="text-lg font-mono text-gray-900 break-all font-bold mb-2">—</p>
+                    <p class="text-xs text-gray-500">Payment account information</p>
+                </div>
+            </div>
+
+            <!-- Amount Summary Section -->
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-lg p-8 mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div>
+                        <p class="text-blue-100 text-sm font-semibold uppercase mb-2">Subtotal</p>
+                        <p id="subtotal" class="text-3xl font-bold">—</p>
+                    </div>
+                    <div>
+                        <p class="text-blue-100 text-sm font-semibold uppercase mb-2">Tax / VAT</p>
+                        <p id="taxVat" class="text-3xl font-bold">—</p>
+                    </div>
+                    <div class="border-t-2 border-blue-300 md:border-t-0 md:border-l-2 md:border-l-blue-300 pt-4 md:pt-0 md:pl-8">
+                        <p class="text-blue-100 text-sm font-semibold uppercase mb-2">Total Amount</p>
+                        <p id="totalAmount" class="text-4xl font-bold">—</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Raw JSON Section -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+                <button
+                    id="jsonToggle"
+                    class="flex items-center justify-between w-full py-4 px-4 hover:bg-gray-50 rounded-lg transition-colors"
+                >
+                    <h2 class="text-xl font-bold text-gray-900">Raw JSON Data</h2>
+                    <svg class="w-6 h-6 text-gray-600 transition-transform" id="jsonArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                    </svg>
+                </button>
+                <div id="jsonContent" class="hidden mt-4 p-4 bg-gray-50 rounded border border-gray-200 overflow-x-auto">
+                    <pre id="jsonData" class="text-sm text-gray-800 whitespace-pre-wrap break-words"></pre>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <a
+                    href="/"
+                    class="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                >
+                    ↻ Scan Another Invoice
+                </a>
+                <button
+                    id="downloadBtn"
+                    class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                >
+                    ⬇ Download JSON
+                </button>
+                <button
+                    id="copyBtn"
+                    class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                >
+                    📋 Copy JSON
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let extractedData = null;
+
+        // Load data from session storage
+        function loadData() {
+            const dataStr = sessionStorage.getItem('extractedData');
+            if (!dataStr) {
+                window.location.href = '/';
+                return;
+            }
+
+            try {
+                extractedData = JSON.parse(dataStr);
+                renderData();
+                sessionStorage.removeItem('extractedData');
+            } catch (error) {
+                console.error('Error parsing data:', error);
+                window.location.href = '/';
+            }
+        }
+
+        // Safely get value or display placeholder
+        function safeValue(value) {
+            if (value === null || value === undefined || value === '') {
+                return '—';
+            }
+            return String(value);
+        }
+
+        // Render extracted data
+        function renderData() {
+            document.getElementById('supplier').textContent = safeValue(extractedData.supplier);
+            document.getElementById('customer').textContent = safeValue(extractedData.customer);
+            document.getElementById('invoiceNumber').textContent = safeValue(extractedData.invoice_number);
+            document.getElementById('invoiceDate').textContent = safeValue(extractedData.invoice_date);
+            document.getElementById('paymentTerm').textContent = safeValue(extractedData.payment_term);
+            document.getElementById('iban').textContent = safeValue(extractedData.iban);
+            document.getElementById('subtotal').textContent = safeValue(extractedData.subtotal);
+            document.getElementById('taxVat').textContent = safeValue(extractedData.tax_vat);
+            document.getElementById('totalAmount').textContent = safeValue(extractedData.total_amount);
+
+            // Populate summary section
+            document.getElementById('summaryInvoiceNumber').textContent = safeValue(extractedData.invoice_number);
+            document.getElementById('summarySupplier').textContent = safeValue(extractedData.supplier);
+            document.getElementById('summaryCurrency').textContent = safeValue(extractedData.total_amount);
+
+            // Display raw JSON
+            document.getElementById('jsonData').textContent = JSON.stringify(extractedData, null, 2);
+        }
+
+        // JSON toggle
+        document.getElementById('jsonToggle').addEventListener('click', () => {
+            const content = document.getElementById('jsonContent');
+            const arrow = document.getElementById('jsonArrow');
+            content.classList.toggle('hidden');
+            arrow.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+        });
+
+        // Download JSON
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const dataStr = JSON.stringify(extractedData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `invoice-${extractedData.invoice_number || 'data'}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        });
+
+        // Copy JSON
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            const dataStr = JSON.stringify(extractedData, null, 2);
+            try {
+                await navigator.clipboard.writeText(dataStr);
+                const btn = document.getElementById('copyBtn');
+                const oldText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                setTimeout(() => {
+                    btn.textContent = oldText;
+                }, 2000);
+            } catch (error) {
+                alert('Failed to copy to clipboard');
+            }
+        });
+
+        // Load data on page load
+        loadData();
+    </script>
+</body>
+</html>
