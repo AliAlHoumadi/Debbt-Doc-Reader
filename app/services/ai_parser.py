@@ -166,6 +166,43 @@ def parse_invoice_fields(text: str) -> Dict[str, Any]:
     return data
 
 
+def is_likely_invoice(data: Dict[str, Any]) -> tuple[bool, str]:
+    """
+    Check if the extracted data looks like an invoice.
+    
+    Args:
+        data: The extracted data dictionary
+        
+    Returns:
+        Tuple of (is_invoice: bool, reason: str)
+    """
+    # Count how many key invoice fields we found
+    key_fields_found = 0
+    
+    # Invoice number is a strong indicator
+    if data.get("invoice_number"):
+        key_fields_found += 2
+    
+    # Supplier/customer info
+    if data.get("supplier") and data.get("supplier") != "Unknown":
+        key_fields_found += 1
+    if data.get("customer") and data.get("customer") != "Unknown":
+        key_fields_found += 1
+    
+    # Amount fields (critical for invoices)
+    if data.get("total_amount"):
+        key_fields_found += 2
+    elif data.get("subtotal"):
+        key_fields_found += 1
+    
+    # If we found at least 2 key fields, it's likely an invoice
+    if key_fields_found >= 2:
+        return True, ""
+    
+    # If we found very little, it's probably not an invoice
+    return False, "This doesn't look like an invoice. Make sure you uploaded an actual invoice document."
+
+
 def extract_invoice_data(image_bytes: bytes, api_key: str = None) -> Dict[str, Any]:
     """
     Extract invoice data from an image using EasyOCR.
@@ -175,7 +212,7 @@ def extract_invoice_data(image_bytes: bytes, api_key: str = None) -> Dict[str, A
         api_key: Ignored (included for API compatibility)
         
     Returns:
-        Dictionary containing extracted invoice data
+        Dictionary containing extracted invoice data with optional error field
         
     Raises:
         AIParserError: If extraction fails
@@ -186,6 +223,12 @@ def extract_invoice_data(image_bytes: bytes, api_key: str = None) -> Dict[str, A
         
         # Parse fields from text
         extracted_data = parse_invoice_fields(text)
+        
+        # Check if this looks like an invoice
+        is_invoice, error_reason = is_likely_invoice(extracted_data)
+        
+        if not is_invoice:
+            extracted_data["error"] = error_reason
         
         return extracted_data
     

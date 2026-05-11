@@ -21,6 +21,19 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .toast {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
@@ -156,6 +169,41 @@
 
         let selectedFile = null;
 
+        const ALLOWED_TYPES = {'.pdf': 'PDF', '.png': 'PNG Image', '.jpg': 'JPG Image', '.jpeg': 'JPEG Image'};
+        const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+        // Validation function
+        function validateFile(file) {
+            const ext = '.' + file.name.split('.').pop().toLowerCase();
+            
+            // Check extension
+            if (!Object.keys(ALLOWED_TYPES).includes(ext)) {
+                return {
+                    valid: false,
+                    error: `Invalid file type: ${file.name}\n\nAllowed: PDF, PNG, JPG, JPEG`
+                };
+            }
+            
+            // Check size
+            if (file.size > MAX_SIZE) {
+                return {
+                    valid: false,
+                    error: `File too large: ${formatFileSize(file.size)}\n\nMaximum allowed: ${formatFileSize(MAX_SIZE)}`
+                };
+            }
+            
+            return { valid: true };
+        }
+
+        // Show error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorCard.classList.remove('hidden');
+            setTimeout(() => {
+                errorCard.classList.add('hidden');
+            }, 6000);
+        }
+
         // Drop zone click
         dropZone.addEventListener('click', () => fileInput.click());
 
@@ -187,6 +235,14 @@
 
         // Handle file selection
         function handleFileSelect(file) {
+            // Validate file first
+            const validation = validateFile(file);
+            if (!validation.valid) {
+                showError(validation.error);
+                fileInput.value = '';
+                return;
+            }
+
             selectedFile = file;
             fileInfoCard.classList.remove('hidden');
             document.getElementById('fileName').textContent = file.name;
@@ -257,7 +313,25 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.detail || 'Upload failed');
+                    // Handle different error types
+                    let errorMsg = data.detail || 'Upload failed';
+                    
+                    // Provide helpful messages for common errors
+                    if (errorMsg.includes('Invalid file type')) {
+                        errorMsg += '\n\nTry uploading: PDF, PNG, JPG, or JPEG';
+                    } else if (errorMsg.includes('too large')) {
+                        errorMsg += '\n\nPlease choose a file smaller than 10MB';
+                    } else if (errorMsg.includes('empty')) {
+                        errorMsg += '\n\nThe uploaded file appears to be corrupted or empty';
+                    } else if (errorMsg.includes('Failed to extract')) {
+                        errorMsg = 'Could not read the invoice.\n\nMake sure it\'s a clear, readable invoice document';
+                    }
+                    
+                    throw new Error(errorMsg);
+                }
+
+                if (!data.success) {
+                    throw new Error(data.detail || 'An error occurred during processing');
                 }
 
                 // Store data and redirect
@@ -270,7 +344,8 @@
                 submitText.textContent = 'Upload and Extract';
                 submitBtn.disabled = false;
 
-                errorMessage.textContent = error.message;
+                // Show detailed error message
+                errorMessage.innerHTML = `<strong>⚠️ Error:</strong><br/>${error.message.replace(/\n/g, '<br/>')}`;
                 errorCard.classList.remove('hidden');
             }
         });

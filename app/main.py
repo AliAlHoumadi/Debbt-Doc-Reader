@@ -55,13 +55,11 @@ async def upload_invoice(file: UploadFile = File(...)):
     file_path = None
     
     try:
-        # No API key needed - using free OCR
-        
         # Validate file extension
         if not validate_file_extension(file.filename):
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid file type: {file.filename}. Allowed: PNG, JPG, JPEG"
+                detail=f"Invalid file type. Allowed: PDF, PNG, JPG, JPEG"
             )
         
         # Read file content
@@ -70,7 +68,7 @@ async def upload_invoice(file: UploadFile = File(...)):
         if not file_content:
             raise HTTPException(
                 status_code=400,
-                detail="Uploaded file is empty"
+                detail="Uploaded file is empty or corrupted"
             )
         
         # Save uploaded file
@@ -79,11 +77,15 @@ async def upload_invoice(file: UploadFile = File(...)):
         except FileHandlerError as e:
             raise HTTPException(status_code=400, detail=str(e))
         
-        # Extract invoice data using free OCR (works with PDF and images)
+        # Extract invoice data using free OCR
         try:
             extracted_data = extract_invoice_data(file_content)
         except AIParserError as e:
-            # Return a simple message if extraction fails
+            error_msg = str(e)
+            # Provide helpful error messages
+            if "Could not find a backend" in error_msg or "No module" in error_msg:
+                error_msg = "Failed to extract text from the document. Please ensure it's a valid invoice."
+            
             return JSONResponse(
                 status_code=200,
                 content={
@@ -98,9 +100,9 @@ async def upload_invoice(file: UploadFile = File(...)):
                         "tax_vat": "No data found",
                         "total_amount": "No data found",
                         "iban": None,
-                        "line_items": [],
-                        "message": f"Error: {str(e)}"
-                    }
+                        "line_items": []
+                    },
+                    "error": f"Extraction failed: {error_msg}"
                 }
             )
         
@@ -108,7 +110,7 @@ async def upload_invoice(file: UploadFile = File(...)):
         if not validate_extracted_data(extracted_data):
             raise HTTPException(
                 status_code=500,
-                detail="Invalid response format from AI"
+                detail="Invalid response format from extraction engine"
             )
         
         # Clean up uploaded file
@@ -125,15 +127,11 @@ async def upload_invoice(file: UploadFile = File(...)):
     
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"An unexpected error occurred: {str(e)}"
         )
-    finally:
-        # Ensure file cleanup on error
-        if file_path:
-            cleanup_file(file_path)
 
 
 @app.get("/result", response_class=HTMLResponse)
