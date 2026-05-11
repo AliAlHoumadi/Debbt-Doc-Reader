@@ -1,16 +1,10 @@
-"""
-Invoice OCR Web Application
-Main FastAPI application for invoice scanning and data extraction.
-"""
+"""Invoice OCR Web Application - Main FastAPI application."""
 
-import os
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
 from pathlib import Path
-import traceback
 
 from .services.file_handler import (
     save_uploaded_file,
@@ -19,30 +13,6 @@ from .services.file_handler import (
     FileHandlerError,
 )
 from .services.ai_parser import extract_invoice_data, validate_extracted_data, AIParserError
-
-
-# Global API key storage (session-based, not persisted)
-_api_key_store = {}
-
-
-class APIKeyRequest(BaseModel):
-    """Request model for API key submission."""
-    apiKey: str
-
-
-def get_api_key() -> str:
-    """Get API key from environment or session store."""
-    # Check session store first
-    if _api_key_store.get("key"):
-        return _api_key_store["key"]
-    
-    # Check environment variables
-    return os.environ.get("OPENAI_API_KEY", "").strip()
-
-
-def has_api_key() -> bool:
-    """Check if API key is available."""
-    return bool(get_api_key())
 
 
 # Initialize FastAPI app
@@ -61,34 +31,6 @@ static_dir.mkdir(exist_ok=True)
 # Mount static files
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
-
-
-@app.get("/setup", response_class=HTMLResponse)
-async def setup(request: Request):
-    """
-    Serve the API key setup page.
-    """
-    return templates.TemplateResponse("setup.html", {"request": request})
-
-
-@app.post("/api/set-api-key")
-async def set_api_key(request: APIKeyRequest):
-    """
-    Accept and store API key for the session.
-    """
-    if not request.apiKey:
-        raise HTTPException(status_code=400, detail="API key is required")
-    
-    if not request.apiKey.startswith("sk-"):
-        raise HTTPException(status_code=400, detail="Invalid API key format")
-    
-    # Store in session store
-    _api_key_store["key"] = request.apiKey.strip()
-    
-    return JSONResponse(
-        status_code=200,
-        content={"success": True, "message": "API key set successfully"}
-    )
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -141,7 +83,6 @@ async def upload_invoice(file: UploadFile = File(...)):
         try:
             extracted_data = extract_invoice_data(file_content)
         except AIParserError as e:
-            print(f"DEBUG: Extraction error: {str(e)}")
             # Return a simple message if extraction fails
             return JSONResponse(
                 status_code=200,
@@ -184,8 +125,7 @@ async def upload_invoice(file: UploadFile = File(...)):
     
     except HTTPException:
         raise
-    except Exception as e:
-        print(f"Unexpected error: {traceback.format_exc()}")
+    except Exception:
         raise HTTPException(
             status_code=500,
             detail=f"An unexpected error occurred: {str(e)}"

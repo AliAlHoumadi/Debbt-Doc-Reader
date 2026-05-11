@@ -1,17 +1,10 @@
-"""
-Invoice parser service using free, open-source EasyOCR.
-No API key required, works offline.
-"""
+"""Invoice parser service using free, open-source EasyOCR."""
 
 import re
-import json
-from typing import Dict, Any, List
+from typing import Dict, Any
 import easyocr
-import fitz  # PyMuPDF for PDF handling
-import io
+import fitz
 import tempfile
-import numpy as np
-from PIL import Image
 
 
 class AIParserError(Exception):
@@ -26,10 +19,8 @@ def get_ocr_reader():
     """Get or initialize OCR reader with multiple languages."""
     global _reader
     if _reader is None:
-        print("DEBUG: Initializing EasyOCR (first run, this takes ~30 seconds)...")
         # Support multiple European languages for invoice processing
         _reader = easyocr.Reader(['en', 'es', 'fr', 'de', 'nl', 'it', 'pt'], gpu=False)
-        print("DEBUG: EasyOCR initialized with multi-language support")
     return _reader
 
 
@@ -177,7 +168,7 @@ def parse_invoice_fields(text: str) -> Dict[str, Any]:
 
 def extract_invoice_data(image_bytes: bytes, api_key: str = None) -> Dict[str, Any]:
     """
-    Extract invoice data from an image using free PaddleOCR.
+    Extract invoice data from an image using EasyOCR.
     
     Args:
         image_bytes: Image bytes to analyze
@@ -190,22 +181,17 @@ def extract_invoice_data(image_bytes: bytes, api_key: str = None) -> Dict[str, A
         AIParserError: If extraction fails
     """
     try:
-        print("DEBUG: Starting invoice extraction with PaddleOCR")
-        
         # Extract text from image
         text = extract_text_from_image(image_bytes)
-        print(f"DEBUG: Extracted text:\n{text[:500]}")
         
         # Parse fields from text
         extracted_data = parse_invoice_fields(text)
-        print(f"DEBUG: Successfully parsed invoice data")
         
         return extracted_data
     
     except AIParserError:
         raise
     except Exception as e:
-        print(f"DEBUG: Exception: {str(e)}")
         raise AIParserError(f"Failed to extract invoice data: {str(e)}")
 
 
