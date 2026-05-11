@@ -24,6 +24,9 @@ Then open: **http://localhost:8000**
 
 Upload your invoice (PDF, PNG, JPG, JPEG) and extract data instantly!
 
+there is a test file u can use in the /testDoc folder.
+
+
 **Supported formats:** PDF, PNG, JPG, JPEG
 
 ---
